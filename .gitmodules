@@ -1,0 +1,3 @@
+[submodule "drone/PyRep"]
+	path = drone/PyRep
+	url = git@github.com:stepjam/PyRep.git
