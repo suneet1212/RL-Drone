@@ -10,7 +10,8 @@ from ctypes import *
 ####### 
 # Add the local coppeliasim directory to the path. Also need to change directory to it
 # If this is not done then libcoppeliasim.so doesn't recognise some libraries.
-curr_dir = os.getcwd()
+curr_dir, _ = os.path.split(os.path.abspath(__file__))
+
 scenePath = os.path.join(curr_dir, "envScene.ttt")
 sys.path.append(os.path.join(curr_dir, "..", "CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04"))
 os.chdir("../CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04") # 
