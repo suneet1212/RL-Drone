@@ -6,8 +6,8 @@ import sys
 from ctypes import *
 
 curr_dir = os.path.abspath(__file__)
-sys.path.append(os.path.join(curr_dir, "../..", "CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04"))
-os.chdir("../CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04") # 
+sys.path.append(os.path.join(curr_dir, "../..", "CoppeliaSim_Edu"))
+os.chdir("../CoppeliaSim_Edu") # 
 
 def simStart():
     if sim.getSimulationState() == sim.simulation_stopped:
@@ -24,7 +24,7 @@ def simStop():
         sim.stopSimulation()
         simLoop(None, 0)
 
-def simThreadFunc(appDir, scenePath):
+def simThreadFunc(appDir, scenePath, fastSimulation):
     '''
         This is the function which starts coppeliasim simulator.
     '''
@@ -35,7 +35,7 @@ def simThreadFunc(appDir, scenePath):
     # fetch CoppeliaSim API sim-namespace functions:
     global sim
     sim = coppeliasim.bridge.require('sim')
-
+    sim.setBoolParam(sim.boolparam_display_enabled, not fastSimulation)
     v = sim.getInt32Param(sim.intparam_program_full_version)
     version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
     sim.loadScene(scenePath)

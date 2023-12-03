@@ -13,8 +13,8 @@ from ctypes import *
 curr_dir, _ = os.path.split(os.path.abspath(__file__))
 
 scenePath = os.path.join(curr_dir, "envScene.ttt")
-sys.path.append(os.path.join(curr_dir, "..", "CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04"))
-os.chdir("../CoppeliaSim_Edu_V4_6_0_rev2_Ubuntu20_04") # 
+sys.path.append(os.path.join(curr_dir, "..", "CoppeliaSim_Edu"))
+os.chdir("../CoppeliaSim_Edu") # 
 
 # Import necessary coppeliasim libraries
 import coppeliasim.cmdopt
@@ -29,10 +29,10 @@ options = coppeliasim.cmdopt.parse(args)
 appDir = os.path.dirname(args.coppeliasim_library)
 
 # Starts the simulation thread
-t = threading.Thread(target=simThreadFunc, args=(appDir, scenePath))
+fastSimulation = True
+t = threading.Thread(target=simThreadFunc, args=(appDir, scenePath, fastSimulation))
 t.start()
 simRunGui(options) # Need to check how to run headless
 t.join()
-
 
 print("success")
