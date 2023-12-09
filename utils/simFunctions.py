@@ -3,26 +3,24 @@ import sys
 from ctypes import *
 import builtins
 import argparse
+import threading
 
 curr_dir, _ = os.path.split(os.path.abspath(__file__))
 
 if os.path.dirname(os.getcwd()) != "CoppeliaSimEdu":
-    print("Changing Directory")
     sys.path.append(os.path.join(curr_dir, "..", "..", "CoppeliaSimEdu"))
     os.chdir(os.path.join("..", "CoppeliaSimEdu")) 
-
-print("Curr Dir = ", os.getcwd())
 
 # Import necessary coppeliasim libraries
 import coppeliasim.cmdopt
 parser = argparse.ArgumentParser(description='CoppeliaSim client.')
-coppeliasim.cmdopt.add(parser, __file__)
+coppeliasim.cmdopt.add(parser, os.path.basename(__file__))
 args = parser.parse_args()
 builtins.coppeliasim_library = args.coppeliasim_library
 from coppeliaSim import *
 
 from coppeliasim.lib import *
-# import coppeliasim.bridge
+import coppeliasim.bridge
 
 def simStart():
     if sim.getSimulationState() == sim.simulation_stopped:
@@ -72,8 +70,9 @@ def simThreadFunc(appDir, scenePath, fastSimulation):
     #     simLoop(None, 0)
     # simDeinitialize()
 
-def startThread():
-    fastSimulation = True
+def startThread(scenePath, fastSimulation):
+    options = coppeliasim.cmdopt.parse(args)
+    appDir = os.path.dirname(args.coppeliasim_library)
     t = threading.Thread(target=simThreadFunc, args=(appDir, scenePath, fastSimulation))
     t.start()
     simRunGui(options) # Need to check how to run headless
