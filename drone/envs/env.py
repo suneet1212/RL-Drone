@@ -1,6 +1,5 @@
 import gym
 from gym import spaces
-import threading
 from utils.simFunctions import *
 
 class DroneEnv(gym.Env):
