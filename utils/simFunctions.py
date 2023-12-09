@@ -1,13 +1,28 @@
-# from coppeliaSim import *
-import coppeliasim.bridge
-from coppeliasim.lib import *
 import os
 import sys
 from ctypes import *
+import builtins
+import argparse
 
-curr_dir = os.path.abspath(__file__)
-sys.path.append(os.path.join(curr_dir, "../..", "CoppeliaSim_Edu"))
-os.chdir("../CoppeliaSim_Edu") # 
+curr_dir, _ = os.path.split(os.path.abspath(__file__))
+
+if os.path.dirname(os.getcwd()) != "CoppeliaSimEdu":
+    print("Changing Directory")
+    sys.path.append(os.path.join(curr_dir, "..", "..", "CoppeliaSimEdu"))
+    os.chdir(os.path.join("..", "CoppeliaSimEdu")) 
+
+print("Curr Dir = ", os.getcwd())
+
+# Import necessary coppeliasim libraries
+import coppeliasim.cmdopt
+parser = argparse.ArgumentParser(description='CoppeliaSim client.')
+coppeliasim.cmdopt.add(parser, __file__)
+args = parser.parse_args()
+builtins.coppeliasim_library = args.coppeliasim_library
+from coppeliaSim import *
+
+from coppeliasim.lib import *
+# import coppeliasim.bridge
 
 def simStart():
     if sim.getSimulationState() == sim.simulation_stopped:
@@ -45,7 +60,9 @@ def simThreadFunc(appDir, scenePath, fastSimulation):
     simStart()
     for i in range(500):
         t = sim.getSimulationTime()
-        print(f'Simulation time: {t:.2f} [s] (simulation running synchronously to client, i.e. stepped)')
+        droneHandle = sim.getObject("/Quadcopter")
+        pos = sim.getObjectPosition(droneHandle)
+        print(f'Simulation time: {t:.2f} [s] and drone position at {pos}')
         simStep()
     simStop()
     simDeinitialize()
@@ -54,3 +71,10 @@ def simThreadFunc(appDir, scenePath, fastSimulation):
     # while not simGetExitRequest():
     #     simLoop(None, 0)
     # simDeinitialize()
+
+def startThread():
+    fastSimulation = True
+    t = threading.Thread(target=simThreadFunc, args=(appDir, scenePath, fastSimulation))
+    t.start()
+    simRunGui(options) # Need to check how to run headless
+    t.join()
