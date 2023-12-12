@@ -89,7 +89,7 @@ def simThreadFunc(scenePath, fastSimulation):
     #     simLoop(None, 0)
     # simDeinitialize()
 
-def startThread(scenePath, fastSimulation):
+def playSim(scenePath, fastSimulation):
     '''
         Starts the simulator
 
@@ -102,3 +102,28 @@ def startThread(scenePath, fastSimulation):
     t.start()
     simRunGui(options) # Need to check how to run headless
     t.join()
+
+def simThreadFuncStart(scenePath, fastSimulation):
+    simInitialize(c_char_p(appDir.encode('utf-8')), 0)
+    coppeliasim.bridge.load()
+
+    # fetch CoppeliaSim API sim-namespace functions:
+    global sim
+    sim = coppeliasim.bridge.require('sim')
+    sim.setBoolParam(sim.boolparam_display_enabled, not fastSimulation)
+    v = sim.getInt32Param(sim.intparam_program_full_version)
+    version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
+    sim.loadScene(scenePath)
+    print('CoppeliaSim version is:', version)
+
+    simStart()
+
+def initializeSim(scenePath, fastSimulation):
+    t = threading.Thread(target=initializeSim, args=(scenePath, fastSimulation))
+    t.start()
+    simRunGui(options) # Need to check how to run headless
+    t.join()
+
+def deInitializeSim():
+    simStop()
+    simDeinitialize()

@@ -10,5 +10,5 @@ from utils.simFunctions import *
 
 # Starts the simulation thread
 fastSimulation = False # True => doesn't render the changes in the simulator
-startThread(scenePath, fastSimulation)
+playSim(scenePath, fastSimulation)
 print("success")
