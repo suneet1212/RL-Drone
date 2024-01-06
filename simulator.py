@@ -1,7 +1,6 @@
 import os
-import threading
 
-## Just a test script
+## Tried to start the simulator with this script but sim is not recognized in this
 
 # On importing util.simFunctions, it will change the curr directory,
 # so get the curr directory before importing
@@ -12,5 +11,5 @@ from utils.simFunctions import *
 
 # Starts the simulation thread
 fastSimulation = False # True => doesn't render the changes in the simulator
-playSim(scenePath, fastSimulation)
+initializeSim(scenePath, fastSimulation)
 print("success")

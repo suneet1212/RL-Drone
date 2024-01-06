@@ -1,3 +1,4 @@
+from collections.abc import Callable, Iterable, Mapping
 import os
 import sys
 from ctypes import *
@@ -5,6 +6,9 @@ import builtins
 import argparse
 import threading
 from pathlib import Path
+from typing import Any
+from queue import Queue
+import copy
 
 # Add the coppeliasim directory to path (for imports), 
 # also change directory to coppeliasim directory 
@@ -31,6 +35,7 @@ import coppeliasim.bridge
 options = coppeliasim.cmdopt.parse(args)
 appDir = os.path.dirname(args.coppeliasim_library)
 
+queue  = Queue()
 def simStart():
     ''' 
         Starts the simulation
@@ -96,12 +101,11 @@ def playSim(scenePath, fastSimulation):
         scenePath: Path to coppeliasim scene which is to be loaded \n
         fastSimulation: If true then don't render the changes in gui
     '''
-    options = coppeliasim.cmdopt.parse(args)
-    appDir = os.path.dirname(args.coppeliasim_library)
     t = threading.Thread(target=simThreadFunc, args=(scenePath, fastSimulation))
     t.start()
     simRunGui(options) # Need to check how to run headless
     t.join()
+    print("Done")
 
 def simThreadFuncStart(scenePath, fastSimulation):
     simInitialize(c_char_p(appDir.encode('utf-8')), 0)
@@ -114,16 +118,21 @@ def simThreadFuncStart(scenePath, fastSimulation):
     v = sim.getInt32Param(sim.intparam_program_full_version)
     version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
     sim.loadScene(scenePath)
+    simStart()
+    simStep()
+    # sim_copy = copy.deepcopy(sim)
+    # queue.put(sim)
     print('CoppeliaSim version is:', version)
 
-    simStart()
-
 def initializeSim(scenePath, fastSimulation):
-    t = threading.Thread(target=initializeSim, args=(scenePath, fastSimulation))
+    print("Initializing")
+    t = threading.Thread(target=simThreadFuncStart, args=(scenePath, fastSimulation))
     t.start()
     simRunGui(options) # Need to check how to run headless
     t.join()
 
+
 def deInitializeSim():
     simStop()
     simDeinitialize()
+    
