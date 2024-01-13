@@ -16,7 +16,7 @@ class DroneEnv(gym.Env):
         super().__init__()
 
         # playSim(scenePath, fastSim)
-
+        self.simWrapper = SimWrapper(sim)
         # TODO: Fix the observation space
         low = -1*np.ones(10)
         high = np.ones(10)
@@ -35,9 +35,13 @@ class DroneEnv(gym.Env):
         self.targetHandle = sim.getObject("/target")
         print(f"Drone Handle: {self.droneHandle} and Target Handle: {self.targetHandle}")
 
-        # for i in range(5):
-        #     self.reset()
-        #     time.sleep(10)
+        for i in range(5):
+            self.reset()
+            self.simWrapper.simStep()
+            time.sleep(10)
+
+        # self.simWrapper.simStop()
+        self.simWrapper.deInitializeSim()
 
 
     def reset(self):
@@ -49,8 +53,8 @@ class DroneEnv(gym.Env):
         print("dronePos = ", dronePos)
         print("targetPos = ", targetPos)
 
-        self.sim.setObjectPosition(self.droneHandle, dronePos)
-        self.sim.setObjectPosition(self.targetHandle, targetPos)
+        self.sim.setObjectPosition(self.droneHandle, list(dronePos))
+        self.sim.setObjectPosition(self.targetHandle, list(targetPos))
 
         print("Actual Drone Pos = ", self.sim.getObjectPosition(self.droneHandle))
         print("Actual target Pos = ", self.sim.getObjectPosition(self.targetHandle))

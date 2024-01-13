@@ -34,8 +34,10 @@ options = coppeliasim.cmdopt.parse(args)
 appDir = os.path.dirname(args.coppeliasim_library)
 
 class SimWrapper():
-    # def __init__(self) -> None:
-    #     self.options = coppeliasim.cmdopt.parse(args)
+
+    def __init__(self, sim = None):
+        self.sim = sim
+
     def simStart(self):
         ''' 
             Starts the simulation
