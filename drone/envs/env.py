@@ -7,33 +7,12 @@ import time
 
 # queue = Queue(1)
 
-class ThreadSim(threading.Thread):
-    def __init__(self, scenePath, fastSimulation) -> None:
-        threading.Thread.__init__(self)
-        self.scenePath = scenePath
-        self.fastSimulation = fastSimulation
-
-    def run(self):
-        print("On Sim thread, starting sim")
-        initializeSim(self.scenePath, self.fastSimulation)
-
-class ThreadEnv(threading.Thread):
-    def __init__(self, scenePath, fastSimulation):
-        threading.Thread.__init__(self)
-        self.scenePath = scenePath
-        self.fastSimulation = fastSimulation
-
-    def run(self):
-        print("On Env thread, sleeping for 25 sec")
-        time.sleep(25)
-        print("On Env thread, done sleeping, starting env")
-        self.env = DroneEnv(self.scenePath, self.fastSimulation)
-
-    def getEnv(self):
-        return self.env
+# TODO: ThreadEnv needs DroneEnv class which needs simFunctions.
+# Need to define another class which will import all 3 of these classes
+# and it can start ThreadEnv object.
 
 class DroneEnv(gym.Env):
-    def __init__(self, scenePath, fastSim = True) -> None:
+    def __init__(self, sim, scenePath, fastSim = True) -> None:
         super().__init__()
 
         # playSim(scenePath, fastSim)
@@ -50,13 +29,16 @@ class DroneEnv(gym.Env):
         # sim = queue.get()
         # simStart()
         # simStep()
-
+        self.sim = sim
+        print("Trying to get the object handles")
         self.droneHandle = sim.getObject("/Quadcopter")
         self.targetHandle = sim.getObject("/target")
+        print(f"Drone Handle: {self.droneHandle} and Target Handle: {self.targetHandle}")
 
-        for i in range(5):
-            self.reset()
-            time.sleep(10)
+        # for i in range(5):
+        #     self.reset()
+        #     time.sleep(10)
+
 
     def reset(self):
         # TODO: Check how to use random seed
@@ -67,11 +49,11 @@ class DroneEnv(gym.Env):
         print("dronePos = ", dronePos)
         print("targetPos = ", targetPos)
 
-        sim.setObjectPosition(self.droneHandle, dronePos)
-        sim.setObjectPosition(self.targetHandle, targetPos)
+        self.sim.setObjectPosition(self.droneHandle, dronePos)
+        self.sim.setObjectPosition(self.targetHandle, targetPos)
 
-        print("Actual Drone Pos = ", sim.getObjectPosition(self.droneHandle))
-        print("Actual target Pos = ", sim.getObjectPosition(self.targetHandle))
+        print("Actual Drone Pos = ", self.sim.getObjectPosition(self.droneHandle))
+        print("Actual target Pos = ", self.sim.getObjectPosition(self.targetHandle))
 
     def isDone(self):
         pass

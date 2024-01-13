@@ -1,4 +1,3 @@
-from collections.abc import Callable, Iterable, Mapping
 import os
 import sys
 from ctypes import *
@@ -7,7 +6,6 @@ import argparse
 import threading
 from pathlib import Path
 from typing import Any
-from queue import Queue
 import copy
 
 # Add the coppeliasim directory to path (for imports), 
@@ -35,104 +33,107 @@ import coppeliasim.bridge
 options = coppeliasim.cmdopt.parse(args)
 appDir = os.path.dirname(args.coppeliasim_library)
 
-queue  = Queue()
-def simStart():
-    ''' 
-        Starts the simulation
-    '''
-    if sim.getSimulationState() == sim.simulation_stopped:
-        sim.startSimulation()
+class SimWrapper():
+    # def __init__(self) -> None:
+    #     self.options = coppeliasim.cmdopt.parse(args)
+    def simStart(self):
+        ''' 
+            Starts the simulation
+        '''
+        if self.sim.getSimulationState() == self.sim.simulation_stopped:
+            self.sim.startSimulation()
 
-def simStep():
-    ''' 
-        Increments the time of the simulator by 0.05 simulation seconds
-    '''
-    if sim.getSimulationState() != sim.simulation_stopped:
-        t = sim.getSimulationTime()
-        while t == sim.getSimulationTime():
+    def simStep(self):
+        ''' 
+            Increments the time of the simulator by 0.05 simulation seconds
+        '''
+        if self.sim.getSimulationState() != self.sim.simulation_stopped:
+            t = self.sim.getSimulationTime()
+            while t == self.sim.getSimulationTime():
+                simLoop(None, 0)
+
+    def simStop(self):
+        '''
+            Ends the simulation
+        '''
+        while self.sim.getSimulationState() != self.sim.simulation_stopped:
+            self.sim.stopSimulation()
             simLoop(None, 0)
 
-def simStop():
-    '''
-        Ends the simulation
-    '''
-    while sim.getSimulationState() != sim.simulation_stopped:
-        sim.stopSimulation()
-        simLoop(None, 0)
+    def simThreadFunc(self, scenePath, fastSimulation):
+        '''
+            This is the function which starts coppeliasim simulator.\n
+            Need to call this from a thread, check startThread
+        '''
+        simInitialize(c_char_p(appDir.encode('utf-8')), 0)
 
-def simThreadFunc(scenePath, fastSimulation):
-    '''
-        This is the function which starts coppeliasim simulator.\n
-        Need to call this from a thread, check startThread
-    '''
-    simInitialize(c_char_p(appDir.encode('utf-8')), 0)
+        coppeliasim.bridge.load()
 
-    coppeliasim.bridge.load()
+        # fetch CoppeliaSim API sim-namespace functions:
+        # global sim
+        self.sim = coppeliasim.bridge.require('sim')
+        self.sim.setBoolParam(self.sim.boolparam_display_enabled, not fastSimulation)
+        v = self.sim.getInt32Param(self.sim.intparam_program_full_version)
+        version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
+        self.sim.loadScene(scenePath)
+        print('CoppeliaSim version is:', version)
 
-    # fetch CoppeliaSim API sim-namespace functions:
-    global sim
-    sim = coppeliasim.bridge.require('sim')
-    sim.setBoolParam(sim.boolparam_display_enabled, not fastSimulation)
-    v = sim.getInt32Param(sim.intparam_program_full_version)
-    version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
-    sim.loadScene(scenePath)
-    print('CoppeliaSim version is:', version)
+        # To set the amount of time the simulator is running
+        self.simStart()
+        droneHandle = self.sim.getObject("/Quadcopter")
+        targetHandle = self.sim.getObject("/target")
+        print(f"Target Position is : {self.sim.getObjectPosition(targetHandle)}")
+        for i in range(500):
+            t = self.sim.getSimulationTime()
+            pos = self.sim.getObjectPosition(droneHandle)
+            print(f'Simulation time: {t:.2f} [s] and drone position at {pos}')
+            self.simStep()
+        self.simStop()
+        simDeinitialize()
+        
+        # example: simply run CoppeliaSim (runs until the simulator is closed)
+        # while not simGetExitRequest():
+        #     simLoop(None, 0)
+        # simDeinitialize()
 
-    # To set the amount of time the simulator is running
-    simStart()
-    for i in range(500):
-        t = sim.getSimulationTime()
-        droneHandle = sim.getObject("/Quadcopter")
-        pos = sim.getObjectPosition(droneHandle)
-        print(f'Simulation time: {t:.2f} [s] and drone position at {pos}')
-        simStep()
-    simStop()
-    simDeinitialize()
-    
-    # example: simply run CoppeliaSim (runs until the simulator is closed)
-    # while not simGetExitRequest():
-    #     simLoop(None, 0)
-    # simDeinitialize()
+    def playSim(self, scenePath, fastSimulation):
+        '''
+            Starts the simulator
 
-def playSim(scenePath, fastSimulation):
-    '''
-        Starts the simulator
+            scenePath: Path to coppeliasim scene which is to be loaded \n
+            fastSimulation: If true then don't render the changes in gui
+        '''
+        t = threading.Thread(target=self.simThreadFunc, args=(scenePath, fastSimulation))
+        t.start()
+        simRunGui(options) # Need to check how to run headless
+        t.join()
+        print("Done")
 
-        scenePath: Path to coppeliasim scene which is to be loaded \n
-        fastSimulation: If true then don't render the changes in gui
-    '''
-    t = threading.Thread(target=simThreadFunc, args=(scenePath, fastSimulation))
-    t.start()
-    simRunGui(options) # Need to check how to run headless
-    t.join()
-    print("Done")
+    def simThreadFuncStart(self, scenePath, fastSimulation):
+        simInitialize(c_char_p(appDir.encode('utf-8')), 0)
+        coppeliasim.bridge.load()
 
-def simThreadFuncStart(scenePath, fastSimulation):
-    simInitialize(c_char_p(appDir.encode('utf-8')), 0)
-    coppeliasim.bridge.load()
+        # fetch CoppeliaSim API sim-namespace functions:
+        # global sim
+        self.sim = coppeliasim.bridge.require('sim')
+        self.sim.setBoolParam(self.sim.boolparam_display_enabled, not fastSimulation)
+        v = self.sim.getInt32Param(self.sim.intparam_program_full_version)
+        version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
+        self.sim.loadScene(scenePath)
+        self.simStart()
+        self.simStep()
+        # sim_copy = copy.deepcopy(sim)
+        # queue.put(sim)
+        print('CoppeliaSim version is:', version)
 
-    # fetch CoppeliaSim API sim-namespace functions:
-    global sim
-    sim = coppeliasim.bridge.require('sim')
-    sim.setBoolParam(sim.boolparam_display_enabled, not fastSimulation)
-    v = sim.getInt32Param(sim.intparam_program_full_version)
-    version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
-    sim.loadScene(scenePath)
-    simStart()
-    simStep()
-    # sim_copy = copy.deepcopy(sim)
-    # queue.put(sim)
-    print('CoppeliaSim version is:', version)
+    def initializeSim(self, scenePath, fastSimulation):
+        print("Initializing")
+        t = threading.Thread(target=self.simThreadFuncStart, args=(scenePath, fastSimulation))
+        t.start()
+        simRunGui(options) # Need to check how to run headless
+        t.join()
 
-def initializeSim(scenePath, fastSimulation):
-    print("Initializing")
-    t = threading.Thread(target=simThreadFuncStart, args=(scenePath, fastSimulation))
-    t.start()
-    simRunGui(options) # Need to check how to run headless
-    t.join()
-
-
-def deInitializeSim():
-    simStop()
-    simDeinitialize()
-    
+    def deInitializeSim(self):
+        self.simStop()
+        simDeinitialize()
+        
