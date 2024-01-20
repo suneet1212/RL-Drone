@@ -136,6 +136,7 @@ class SimWrapper():
         t.join()
 
     def deInitializeSim(self):
+        print("De Initializing Simulator. Bye")
         self.simStop()
         simDeinitialize()
         

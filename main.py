@@ -10,8 +10,10 @@ scenePath = os.path.join(curr_dir, "envScene.ttt")
 from utils.simFunctions import SimWrapper
 from utils.simFunctions import *
 
-simWrapper = SimWrapper()
-# Starts the simulation thread
-fastSimulation = False # True => doesn't render the changes in the simulator
-simWrapper.playSim(scenePath, fastSimulation)
-print("success")
+# ### Using the sample coppeliasim sample run
+# simWrapper = SimWrapper()
+# # Starts the simulation thread
+# fastSimulation = False # True => doesn't render the changes in the simulator
+# simWrapper.playSim(scenePath, fastSimulation)
+# print("success")
+

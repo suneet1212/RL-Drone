@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import numpy as np
 
 # On importing DroneEnv, it will change the curr directory,
 # so get the curr directory before importing
@@ -70,6 +71,15 @@ class ThreadEnv(threading.Thread):
         # print("On Env thread, sleeping for 25 sec")
         print("On Env thread, starting env")
         self.env = DroneEnv(self.sim, self.scenePath, self.fastSimulation)
+
+        for i in range(100):
+            action = list(np.random.rand(4)*100)
+            obs, reward, terminated, truncated, info = self.env.step(action)
+
+            print(obs, reward, terminated, truncated)
+
+        self.env.simWrapper.deInitializeSim()
+
 
     def getEnv(self):
         return self.env
