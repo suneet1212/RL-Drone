@@ -6,7 +6,7 @@ import numpy as np
 # On importing DroneEnv, it will change the curr directory,
 # so get the curr directory before importing
 curr_dir, _ = os.path.split(os.path.abspath(__file__))
-scenePath = os.path.join(curr_dir, "envScene.ttt")
+scenePath = os.path.join(curr_dir, "envScene1.ttt")
 
 from utils.simFunctions import SimWrapper
 from drone.envs.env import DroneEnv
@@ -73,7 +73,7 @@ class ThreadEnv(threading.Thread):
         self.env = DroneEnv(self.sim, self.scenePath, self.fastSimulation)
 
         for i in range(100):
-            action = list(np.random.rand(4)*100)
+            action = list(np.random.rand(4))
             obs, reward, terminated, truncated, info = self.env.step(action)
 
             print(obs, reward, terminated, truncated)

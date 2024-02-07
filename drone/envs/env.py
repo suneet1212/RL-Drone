@@ -54,9 +54,11 @@ class DroneEnv(gym.Env):
 
         self.prev_linear_velocity = np.zeros(3)
 
+        self.scriptHandle = self.sim.getScript(self.sim.scripttype_childscript, self.droneHandle)
+
         print(self.propellerHandle0, self.propellerHandle1, self.propellerHandle2, self.propellerHandle3)
 
-        self.maxPropellerThrust = 100
+        self.maxPropellerThrust = 10
 
         self.reset()
 
@@ -114,12 +116,11 @@ class DroneEnv(gym.Env):
         # Playing out the action
         # print("Starting a step")
         # setting the propeller thrusts
-        self.sim.setJointTargetVelocity(self.propellerHandle0, action[0] * self.maxPropellerThrust, [])
-        self.sim.setJointTargetVelocity(self.propellerHandle1, action[1] * self.maxPropellerThrust, [])
-        self.sim.setJointTargetVelocity(self.propellerHandle2, action[2] * self.maxPropellerThrust, [])
-        self.sim.setJointTargetVelocity(self.propellerHandle3, action[3] * self.maxPropellerThrust, [])
         # print("Set Joint velocity")
-
+        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 1, action[0] * self.maxPropellerThrust)
+        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 2, action[1] * self.maxPropellerThrust)
+        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 3, action[2] * self.maxPropellerThrust)
+        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 4, action[3] * self.maxPropellerThrust)
         
         self.simWrapper.simStep()
         time.sleep(0.05)
