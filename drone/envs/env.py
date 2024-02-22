@@ -15,12 +15,13 @@ import copy
 class DroneEnv(gym.Env):
     def __init__(self, sim, scenePath, fastSim = True) -> None:
         super().__init__()
+        self.num_envs = 1
 
         # playSim(scenePath, fastSim)
         self.simWrapper = SimWrapper(sim)
         # TODO: Fix the observation space
-        low = -1*np.ones(15)
-        high = np.ones(15)
+        low = -1*np.ones(18)
+        high = np.ones(18)
         self.observation_space = spaces.Box(low, high)
 
         actionLow = -1*np.ones(4)
@@ -60,11 +61,7 @@ class DroneEnv(gym.Env):
 
         self.maxPropellerThrust = 10
 
-        self.reset()
-
-
-        # TODO: Remove this before training
-        # self.simWrapper.deInitializeSim()
+        self.state = self.reset()
 
 
     def reset(self):
@@ -73,15 +70,13 @@ class DroneEnv(gym.Env):
         print("Reseting")
         dronePos = np.random.rand(3)
         targetPos = np.random.rand(3)
-        print("dronePos = ", dronePos)
-        print("targetPos = ", targetPos)
 
         self.sim.setObjectPosition(self.droneHandle, list(dronePos))
         self.sim.setObjectPosition(self.targetHandle, list(targetPos))
+       
+        state = self.get_obs()
+        return state
 
-        self.get_obs()
-        print("Actual Drone Pos = ", self.sim.getObjectPosition(self.droneHandle))
-        print("Actual target Pos = ", self.sim.getObjectPosition(self.targetHandle))
     
     def get_reward(self):
         return max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity)
@@ -92,7 +87,7 @@ class DroneEnv(gym.Env):
         self.target_location = np.array(self.sim.getObjectPosition(self.targetHandle))
         self.linear_velocity, self.angular_velocity = np.array(self.sim.getObjectVelocity(self.droneHandle))
         self.linear_acceleration = self.compute_acc()
-        self.observation = np.concatenate((self.agent_location, self.linear_velocity, self.linear_acceleration, self.euler_angles, self.angular_velocity))
+        observation = np.concatenate((self.agent_location, self.linear_velocity, self.linear_acceleration, self.euler_angles, self.angular_velocity, self.target_location))
 
         print("agent location: ", self.agent_location)
         # print("euler angles: ", self.euler_angles)
@@ -100,6 +95,7 @@ class DroneEnv(gym.Env):
         # print("linear vel: ", self.linear_velocity)
         # print("angular vel: ", self.angular_velocity)
         # print("observation", self.observation)
+        return observation
 
     def compute_acc(self):
         acc = (self.linear_velocity - self.prev_linear_velocity)/self.sim.getSimulationTimeStep()

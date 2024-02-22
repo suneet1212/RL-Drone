@@ -121,6 +121,7 @@ class SimWrapper():
         self.sim.setBoolParam(self.sim.boolparam_display_enabled, not fastSimulation)
         v = self.sim.getInt32Param(self.sim.intparam_program_full_version)
         version = '.'.join(str(v // 100**(3-i) % 100) for i in range(4))
+        print(scenePath)
         self.sim.loadScene(scenePath)
         self.simStart()
         self.simStep()
