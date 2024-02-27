@@ -8,9 +8,7 @@ import copy
 
 # queue = Queue(1)
 
-# TODO: ThreadEnv needs DroneEnv class which needs simFunctions.
-# Need to define another class which will import all 3 of these classes
-# and it can start ThreadEnv object.
+# TODO: num_envs is hardcoded as one. Fix for vectorization
 
 class DroneEnv(gym.Env):
     def __init__(self, sim, scenePath, fastSim = True) -> None:
@@ -28,13 +26,13 @@ class DroneEnv(gym.Env):
         actionHigh = np.ones(4)
         self.action_space = spaces.Box(actionLow, actionHigh)
 
-        self.time_limit = 600
-        self.X_min = -1000
-        self.X_max = 1000
-        self.Y_min = -1000
-        self.Y_max = 1000
-        self.Z_min = -1000
-        self.Z_max = 1000
+        self.time_limit = 1000
+        self.X_min = -10
+        self.X_max = 10
+        self.Y_min = -10
+        self.Y_max = 10
+        self.Z_min = 0.2
+        self.Z_max = 10
 
         self.C_theta = 100
         self.C_omega = 100
@@ -79,7 +77,14 @@ class DroneEnv(gym.Env):
 
     
     def get_reward(self):
-        return max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity)
+        # 
+        reward = np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
+        if self.truncated:
+            reward -= 100
+        
+        if self.terminated:
+            reward += 100
+        return 
 
     def get_obs(self):
         self.agent_location = np.array(self.sim.getObjectPosition(self.droneHandle))
@@ -88,6 +93,7 @@ class DroneEnv(gym.Env):
         self.linear_velocity, self.angular_velocity = np.array(self.sim.getObjectVelocity(self.droneHandle))
         self.linear_acceleration = self.compute_acc()
         observation = np.concatenate((self.agent_location, self.linear_velocity, self.linear_acceleration, self.euler_angles, self.angular_velocity, self.target_location))
+        self.observation = observation.reshape((self.num_envs, -1))
 
         print("agent location: ", self.agent_location)
         # print("euler angles: ", self.euler_angles)
@@ -95,7 +101,7 @@ class DroneEnv(gym.Env):
         # print("linear vel: ", self.linear_velocity)
         # print("angular vel: ", self.angular_velocity)
         # print("observation", self.observation)
-        return observation
+        return self.observation
 
     def compute_acc(self):
         acc = (self.linear_velocity - self.prev_linear_velocity)/self.sim.getSimulationTimeStep()
@@ -103,16 +109,20 @@ class DroneEnv(gym.Env):
         return acc
     
     def get_terminated(self):
-        return True if np.linalg.norm(self.agent_location - self.target_location) < 0.1 else False
+        return True if( np.linalg.norm(self.agent_location - self.target_location) < 0.1) or () else False
 
     def get_truncated(self):
         return not (self.X_min <= self.agent_location[0] <= self.X_max and self.Y_min <= self.agent_location[1] <= self.Y_max and self.Z_min <= self.agent_location[2] <= self.Z_max and self.sim.getSimulationTime() < self.time_limit)
+    
+    def _get_info(self):
+        return [{"distance": np.linalg.norm(self.agent_location - self.target_location, ord=1)}]
 
     def step(self, action):
         # Playing out the action
         # print("Starting a step")
         # setting the propeller thrusts
         # print("Set Joint velocity")
+        action = np.squeeze(action)
         self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 1, action[0] * self.maxPropellerThrust)
         self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 2, action[1] * self.maxPropellerThrust)
         self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 3, action[2] * self.maxPropellerThrust)
@@ -125,15 +135,17 @@ class DroneEnv(gym.Env):
         self.get_obs()
         
         # An episode is done iff the agent has reached the target
-        terminated = self.get_terminated()
+        self.terminated = self.get_terminated()
+
+        self.truncated = self.get_truncated()
         reward = self.get_reward()
 
-        truncated = self.get_truncated()
+        # print(truncated, " & ", terminated, "&", (terminated or truncated))
 
-        self.info = None
+        self.info = self._get_info()
 
         # if self.render_mode == "human":
         #     self._render_frame()
 
-        return self.observation, reward, terminated, truncated, self.info
+        return self.observation, reward, np.expand_dims(self.terminated or self.truncated, axis=0), self.info
 

@@ -74,7 +74,7 @@ class ThreadEnv(threading.Thread):
         self.env = DroneEnv(self.sim, self.scenePath, self.fastSimulation)
         
         agent = Agent(self.env)
-        agent.train()
+        agent.train_model()
         # for i in range(100):
         #     action = list(np.random.rand(4))
         #     obs, reward, terminated, truncated, info = self.env.step(action)
