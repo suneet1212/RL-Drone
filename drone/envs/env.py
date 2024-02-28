@@ -27,12 +27,15 @@ class DroneEnv(gym.Env):
         self.action_space = spaces.Box(actionLow, actionHigh)
 
         self.time_limit = 1000
-        self.X_min = -10
-        self.X_max = 10
-        self.Y_min = -10
-        self.Y_max = 10
+        self.X_min = -3
+        self.X_max = 3
+        self.Y_min = -3
+        self.Y_max = 3
         self.Z_min = 0.2
-        self.Z_max = 10
+        self.Z_max = 3
+
+        self.pos_min = np.array([self.X_min, self.Y_min, self.Z_min])
+        self.pos_max = np.array([self.X_max, self.Y_max, self.Z_max])
 
         self.C_theta = 100
         self.C_omega = 100
@@ -66,8 +69,8 @@ class DroneEnv(gym.Env):
         # TODO: Check how to use random seed
         # TODO: Reset all the variables required
         print("Reseting")
-        dronePos = np.random.rand(3)
-        targetPos = np.random.rand(3)
+        dronePos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
+        targetPos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
 
         self.sim.setObjectPosition(self.droneHandle, list(dronePos))
         self.sim.setObjectPosition(self.targetHandle, list(targetPos))

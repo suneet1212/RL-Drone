@@ -1,5 +1,6 @@
 import torch
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 import os
@@ -21,6 +22,16 @@ class Agent(PPO):
         print(x)
 
     def train_model(self):
-        self.learn(500, log_interval=1)
-        self.save(os.path.join(curr_dir, "model/ppo_test"))
-        print("Saved to ", os.path.join(curr_dir, "model/ppo_test"))
+        self.learn(5000000, log_interval=1, callback=CustomCallBack(self.env))
+        self.save(os.path.join(curr_dir, "model/ppo_train_1"))
+
+class CustomCallBack(BaseCallback):
+    def __init__(self, env, verbose: int = 0):
+        self.env = env
+        super().__init__(verbose)
+
+    def _on_rollout_start(self) -> None:
+        self.env.reset()
+
+    def _on_step(self) -> bool:
+        return super()._on_step()
