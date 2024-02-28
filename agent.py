@@ -13,7 +13,7 @@ curr_dir, _ = os.path.split(os.path.abspath(__file__))
 
 class Agent(PPO):
     def __init__(self, env, modelPath:str = None) -> None:
-        super().__init__("MlpPolicy", env, verbose=1, tensorboard_log="./runs", n_steps=128)
+        super().__init__("MlpPolicy", env, verbose=1, tensorboard_log="./runs")
         self.env = env
         if modelPath:
             self.set_parameters(modelPath)
