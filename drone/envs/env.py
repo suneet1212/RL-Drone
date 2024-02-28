@@ -59,10 +59,10 @@ class DroneEnv(gym.Env):
 
         self.maxPropellerThrust = 10
 
-        self.state = self.reset()
+        self.state,  = self.reset()
 
 
-    def reset(self):
+    def reset(self, seed=0):
         # TODO: Check how to use random seed
         # TODO: Reset all the variables required
         print("Reseting")
@@ -77,14 +77,13 @@ class DroneEnv(gym.Env):
 
     
     def get_reward(self):
-        # 
         reward = np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
         if self.truncated:
             reward -= 100
         
         if self.terminated:
             reward += 100
-        return 
+        return reward
 
     def get_obs(self):
         self.agent_location = np.array(self.sim.getObjectPosition(self.droneHandle))

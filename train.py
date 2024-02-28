@@ -75,6 +75,9 @@ class ThreadEnv(threading.Thread):
         
         agent = Agent(self.env)
         agent.train_model()
+
+        simWrapper = SimWrapper(self.sim)
+        simWrapper.deInitializeSim()
         # for i in range(100):
         #     action = list(np.random.rand(4))
         #     obs, reward, terminated, truncated, info = self.env.step(action)
