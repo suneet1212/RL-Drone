@@ -22,15 +22,17 @@ class DroneEnv(gym.Env):
         high = np.ones(18)
         self.observation_space = spaces.Box(low, high)
 
-        actionLow = -1*np.ones(4)
-        actionHigh = np.ones(4)
-        self.action_space = spaces.Box(actionLow, actionHigh)
+
+        self.actionStep = 1
+
+        self.numActions = 7
+        self.action_space = spaces.Discrete(self.numActions)
 
         self.time_limit = 1000
-        self.X_min = -3
-        self.X_max = 3
-        self.Y_min = -3
-        self.Y_max = 3
+        self.X_min = -2
+        self.X_max = 2
+        self.Y_min = -2
+        self.Y_max = 2
         self.Z_min = 0.2
         self.Z_max = 3
 
@@ -47,6 +49,8 @@ class DroneEnv(gym.Env):
         print("Trying to get the object handles")
         self.droneHandle = sim.getObject("/Quadcopter")
         self.targetHandle = sim.getObject("/target")
+        self.droneToTargetDistance = self.computeDistance(self.droneHandle, self.targetHandle)
+        self.prevDroneToTargetDistance = self.droneToTargetDistance
         print(f"Drone Handle: {self.droneHandle} and Target Handle: {self.targetHandle}")
 
         self.propellerHandle0 = self.sim.getObject("/Quadcopter/joint")
@@ -68,26 +72,50 @@ class DroneEnv(gym.Env):
     def reset(self, seed=0):
         # TODO: Check how to use random seed
         # TODO: Reset all the variables required
-        print("Reseting")
+        print("Resetting")
         dronePos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
         targetPos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
 
         self.sim.setObjectPosition(self.droneHandle, list(dronePos))
         self.sim.setObjectPosition(self.targetHandle, list(targetPos))
-       
+        
         state = self.get_obs()
         return state
 
     
     def get_reward(self):
-        reward = np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
-        if self.truncated:
-            reward -= 100
-        
-        if self.terminated:
-            reward += 100
+        reward = 0
+        # a positive reward if the distance to the target is reduced, otherwise a negative reward
+        self.prevDroneToTargetDistance = self.DroneToTargetDistance
+        self.droneToTargetDistance = self.computeDistance(self.droneHandle, self.targetHandle)
+        if(self.droneToTargetDistance < self.prevDroneToTargetDistance):
+            reward = 10
+        elif(self.droneToTargetDistance > self.prevDroneToTargetDistance):
+            reward = -10
+        else:
+            reward = 0
         return reward
 
+        
+        # reward = 100*np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
+        # if self.truncated:
+        #    reward -= 10000
+        #else:
+        #    reward += 10000
+        # if self.terminated:
+        #    reward += 1000000
+        # return reward
+
+    def computeDistance(self, handle1, handle2):
+        location1 = self.sim.getObjectPosition(handle1)
+        location2 = self.sim.getObjectPosition(handle2)
+        
+        location1np = np.array(location1)
+        location2np = np.array(location2)
+        
+        dis = np.linalg.norm(location1np - location2np)
+        return dis
+    	    	
     def get_obs(self):
         self.agent_location = np.array(self.sim.getObjectPosition(self.droneHandle))
         self.euler_angles = np.array(self.sim.getObjectOrientation(self.droneHandle))
@@ -124,11 +152,35 @@ class DroneEnv(gym.Env):
         # print("Starting a step")
         # setting the propeller thrusts
         # print("Set Joint velocity")
-        action = np.squeeze(action)
-        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 1, action[0] * self.maxPropellerThrust)
-        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 2, action[1] * self.maxPropellerThrust)
-        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 3, action[2] * self.maxPropellerThrust)
-        self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 4, action[3] * self.maxPropellerThrust)
+        # action = np.squeeze(action)
+        # self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 1, action[0] * self.maxPropellerThrust)
+        # self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 2, action[1] * self.maxPropellerThrust)
+        # self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 3, action[2] * self.maxPropellerThrust)
+        # self.sim.callScriptFunction("handlePropeller", self.scriptHandle, 4, action[3] * self.maxPropellerThrust)
+        
+        # action is in range 0 to 6: one step in 3*2 directions and one hovering action
+        
+        position = self.sim.getObjectPosition(self.droneHandle)
+        if(action == 0):
+            position[0] += self.actionStep
+        elif(action == 1):
+            position[0] -= self.actionStep
+        elif(action == 2):
+            position[1] += self.actionStep
+        elif(action == 3):
+            position[1] -= self.actionStep
+        elif(action == 4):
+            position[2] += self.actionStep
+        elif(action == 5):
+            position[2] -= self.actionStep
+        elif(action == 6):
+            pass
+        else:
+            print("not an accepted action")
+            
+        # playing out the action
+        
+        self.sim.setObjectPosition(self.droneHandle, position)
         
         self.simWrapper.simStep()
         time.sleep(0.05)
