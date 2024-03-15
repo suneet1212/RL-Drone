@@ -80,7 +80,7 @@ class DroneEnv(gym.Env):
 
     
     def get_reward(self):
-        reward = np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
+        reward = 100*np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
         if self.truncated:
             reward -= 100
         
@@ -97,7 +97,7 @@ class DroneEnv(gym.Env):
         observation = np.concatenate((self.agent_location, self.linear_velocity, self.linear_acceleration, self.euler_angles, self.angular_velocity, self.target_location))
         self.observation = observation.reshape((self.num_envs, -1))
 
-        print("agent location: ", self.agent_location)
+        # print("agent location: ", self.agent_location)
         # print("euler angles: ", self.euler_angles)
         # print("target location: ", self.target_location)
         # print("linear vel: ", self.linear_velocity)

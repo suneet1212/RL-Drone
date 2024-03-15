@@ -19,24 +19,6 @@ from drone.envs.env import DroneEnv
 class Simulator(SimWrapper):
     def __init__(self) -> None:
         super().__init__()
-
-    # def initializeSim(self, scenePath, fastSimulation):
-    #     print("Initializing")
-    #     threadSim = ThreadSim(scenePath, False)
-    #     threadSim.start()
-
-    #     time.sleep(20)
-    #     threadEnv = ThreadEnv(self.sim, scenePath, False)
-    #     threadEnv.start()
-    #     t = threading.Thread(target=self.simThreadFuncStart, args=(scenePath, fastSimulation))
-    #     t.start()
-    #     simRunGui(options) # Need to check how to run headless
-    #     t.join()
-
-
-    # def deInitializeSim(self):
-    #     self.simStop()
-    #     simDeinitialize()
         
     def start(self, scenePath, fastSim):
         threadSim = ThreadSim(self, scenePath, fastSim)
@@ -74,17 +56,25 @@ class ThreadEnv(threading.Thread):
         self.env = DroneEnv(self.sim, self.scenePath, self.fastSimulation)
         
         agent = Agent(self.env)
-        agent.train_model()
+        agent.set_parameters(modelPath)
 
+        obs = self.env.get_obs()
+
+        for i in range(10):
+            done = False
+            rewards = 0
+            while not done:
+                action, _ = list(agent.predict(obs))
+                obs, reward, dones, info = self.env.step(action)
+                done = dones[0]
+                rewards += reward[0]
+            print("Episode ", i, " reward = ", rewards)
+            
+
+
+        self.env.simWrapper.deInitializeSim()
         simWrapper = SimWrapper(self.sim)
         simWrapper.deInitializeSim()
-        # for i in range(100):
-        #     action = list(np.random.rand(4))
-        #     obs, reward, terminated, truncated, info = self.env.step(action)
-
-        #     print(obs, reward, terminated, truncated)
-
-        # self.env.simWrapper.deInitializeSim()
 
 
     def getEnv(self):
