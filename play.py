@@ -58,16 +58,16 @@ class ThreadEnv(threading.Thread):
         agent = Agent(self.env)
         agent.set_parameters(modelPath)
 
-        obs = self.env.get_obs()
-
         for i in range(10):
             done = False
             rewards = 0
+            obs = self.env.reset()
             while not done:
                 action, _ = list(agent.predict(obs))
                 obs, reward, dones, info = self.env.step(action)
                 done = dones[0]
                 rewards += reward[0]
+                print(dones)
             print("Episode ", i, " reward = ", rewards)
             
 
