@@ -26,6 +26,7 @@ class DroneEnv(gym.Env):
         actionHigh = np.ones(4)
         self.action_space = spaces.Box(actionLow, actionHigh)
 
+        # TODO: fix the observation space. scaling required.
         self.time_limit = 1000
         self.X_min = -3
         self.X_max = 3
@@ -54,21 +55,21 @@ class DroneEnv(gym.Env):
         self.propellerHandle2 = self.sim.getObject("/Quadcopter/propeller[2]/joint")
         self.propellerHandle3 = self.sim.getObject("/Quadcopter/propeller[3]/joint")
 
-        self.prev_linear_velocity = np.zeros(3)
-
         self.scriptHandle = self.sim.getScript(self.sim.scripttype_childscript, self.droneHandle)
 
         print(self.propellerHandle0, self.propellerHandle1, self.propellerHandle2, self.propellerHandle3)
 
         self.maxPropellerThrust = 10
 
-        self.state,  = self.reset()
+        self.state = self.reset()
 
 
     def reset(self, seed=0):
         # TODO: Check how to use random seed
         # TODO: Reset all the variables required
         print("Reseting")
+        self.prev_linear_velocity = np.zeros(3)
+
         dronePos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
         targetPos = np.random.rand(3)*(self.pos_max-self.pos_min) + self.pos_min
 
@@ -111,7 +112,7 @@ class DroneEnv(gym.Env):
         return acc
     
     def get_terminated(self):
-        return True if( np.linalg.norm(self.agent_location - self.target_location) < 0.1) or () else False
+        return True if( np.linalg.norm(self.agent_location - self.target_location) < 0.1) else False
 
     def get_truncated(self):
         return not (self.X_min <= self.agent_location[0] <= self.X_max and self.Y_min <= self.agent_location[1] <= self.Y_max and self.Z_min <= self.agent_location[2] <= self.Z_max and self.sim.getSimulationTime() < self.time_limit)
