@@ -19,7 +19,7 @@ class DroneEnv(gym.Env):
         self.simWrapper = SimWrapper(sim)
         # TODO: Fix the observation space
         low = -1*np.ones(18)
-        high = np.ones(18)
+        high = 1*np.ones(18)
         self.observation_space = spaces.Box(low, high)
 
         actionLow = -1*np.ones(4)
@@ -28,12 +28,12 @@ class DroneEnv(gym.Env):
 
         # TODO: fix the observation space. scaling required.
         self.time_limit = 1000
-        self.X_min = -3
-        self.X_max = 3
-        self.Y_min = -3
-        self.Y_max = 3
+        self.X_min = -1
+        self.X_max = 1
+        self.Y_min = -1
+        self.Y_max = 1
         self.Z_min = 0.2
-        self.Z_max = 3
+        self.Z_max = 1
 
         self.pos_min = np.array([self.X_min, self.Y_min, self.Z_min])
         self.pos_max = np.array([self.X_max, self.Y_max, self.Z_max])
@@ -60,6 +60,8 @@ class DroneEnv(gym.Env):
         print(self.propellerHandle0, self.propellerHandle1, self.propellerHandle2, self.propellerHandle3)
 
         self.maxPropellerThrust = 10
+        self.droneToTargetDistance = self.computeDistance(self.droneHandle, self.targetHandle)
+        self.prevDroneToTargetDistance = self.droneToTargetDistance
 
         self.state = self.reset()
 
@@ -81,13 +83,25 @@ class DroneEnv(gym.Env):
 
     
     def get_reward(self):
-        reward = 100*np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
-        if self.truncated:
-            reward -= 100
+
+        reward = 0
+        # reward is the negative of the drone to target distance
+        self.prevDroneToTargetDistance = self.droneToTargetDistance
+        self.droneToTargetDistance = self.computeDistance(self.droneHandle, self.targetHandle)
         
-        if self.terminated:
-            reward += 100
+        reward = -1 * self.droneToTargetDistance
+
         return reward
+
+
+
+        # reward = 100*np.expand_dims(max(0, 1 - np.linalg.norm(self.agent_location - self.target_location)) - self.C_theta * np.linalg.norm(self.euler_angles) - self.C_omega * np.linalg.norm(self.angular_velocity), 0)
+        # if self.truncated:
+        #     reward -= 100
+        
+        # if self.terminated:
+        #     reward += 100
+        # return reward
 
     def get_obs(self):
         self.agent_location = np.array(self.sim.getObjectPosition(self.droneHandle))
@@ -105,6 +119,18 @@ class DroneEnv(gym.Env):
         # print("angular vel: ", self.angular_velocity)
         # print("observation", self.observation)
         return self.observation
+
+    def computeDistance(self, handle1, handle2):
+        location1 = self.sim.getObjectPosition(handle1)
+        location2 = self.sim.getObjectPosition(handle2)
+        
+        location1np = np.array(location1)
+        location2np = np.array(location2)
+        
+        dis = np.linalg.norm(location1np - location2np)
+        return dis
+
+
 
     def compute_acc(self):
         acc = (self.linear_velocity - self.prev_linear_velocity)/self.sim.getSimulationTimeStep()

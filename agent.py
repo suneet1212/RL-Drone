@@ -37,7 +37,7 @@ class Agent(PPO):
 
 
     def train_model(self):
-        self.learn(9000, log_interval=1, callback=CustomCallBack(self.env), save_intervals = 2)
+        self.learn(500000, log_interval=1, callback=CustomCallBack(self.env), save_intervals = 2)
         path = os.path.join(curr_dir, "model/ppo_train_expt")
         path = os.path.join(path, self.dt, "final")
         self.save(path)

@@ -7,7 +7,7 @@ from agent import Agent
 # so get the curr directory before importing
 curr_dir, _ = os.path.split(os.path.abspath(__file__))
 scenePath = os.path.join(curr_dir, "envScene1.ttt")
-modelPath = os.path.join(curr_dir, "model/ppo_train_1.zip")
+modelPath = os.path.join(curr_dir, "model/ppo_train_expt/20240326131622/76800.zip")
 
 from utils.simFunctions import SimWrapper
 from drone.envs.env import DroneEnv
@@ -66,7 +66,12 @@ class ThreadEnv(threading.Thread):
                 action, _ = list(agent.predict(obs))
                 obs, reward, dones, info = self.env.step(action)
                 done = dones[0]
-                rewards += reward[0]
+                print(reward)
+                # look this up
+                # rewards += reward[0]
+
+                rewards += reward
+
                 print(dones)
             print("Episode ", i, " reward = ", rewards)
             
